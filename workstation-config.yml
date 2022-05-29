@@ -1,0 +1,41 @@
+---
+- name: Rocky-Linux workstation configuration playbook
+  hosts: localhost
+  become: true
+  become_method: sudo
+  become_user: root
+  tasks:
+
+    - name: Creation of user {{ user }}.
+      user:
+        name: "{{ user }}"
+        state: present
+        home: /home/{{ user }}
+        comment: Regular user account.
+        groups: wheel
+
+    - name: Installing yum packages.
+      yum:
+        name:
+          - vim
+          - tmux
+          - git
+        state: present
+
+
+- name: Rocky-Linux workstation configuration playbook
+  hosts: localhost
+  remote_user: "{{ user }}"
+  become: true
+  become_method: sudo
+  become_user: root
+  vars_files:
+    - vars/users.yml
+  tasks:
+
+    - name: Customizating {{ user }}\'s prompt.
+      copy:
+        dest: /home/{{ user }}/.bashrc
+        src: "{{ user_bashrc }}"
+        backup: true
+...
