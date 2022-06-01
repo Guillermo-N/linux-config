@@ -5,14 +5,38 @@
   become_method: sudo
   become_user: root
   tasks:
+          
+    - name: Checking for the distribution.
+      fail:
+        msg: The distribution you are trying to run this playbook on is {{ ansible_distribution }}
+      when: ansible_distribution_file_variety != "RedHat"
 
-    - name: Creation of user {{ user }}.
-      user:
-        name: "{{ user }}"
+    - name: User running playbook
+      debug:
+        msg: Play runned by {{ ansible_user_id }}
+
+    - name: Getting SSID connection name
+      shell:
+        cmd: nmcli -t -f name,device connection show --active | grep {{ ansible_default_ipv4.interface }} | cut -d\{{":"}} -f1
+      register: wifi_ssid
+    
+    - name: Checking net changes
+      debug:
+        var: wifi_ssid
+
+
+    - name: Configuring network {{ wifi_ssid }}
+      community.general.nmcli:
+        conn_name: "{{ wifi_ssid }}" 
+        ifname: "{{ ansible_default_ipv4.interface }}"
+        wifi:
+          assigned-mac-address: random
         state: present
-        home: /home/{{ user }}
-        comment: Regular user account.
-        groups: wheel
+      register: net
+
+    - name: Checking net changes
+      debug:
+        var: net
 
     - name: Installing yum packages.
       yum:
@@ -25,17 +49,18 @@
 
 - name: Rocky-Linux workstation configuration playbook
   hosts: localhost
-  remote_user: "{{ user }}"
-  become: true
-  become_method: sudo
-  become_user: root
   vars_files:
     - vars/users.yml
   tasks:
 
-    - name: Customizating {{ user }}\'s prompt.
+    - name: User running playbook
+      debug:
+        msg: Play runned by {{ ansible_user_id }}
+
+
+    - name: Customizating {{ ansible_user_id }}\'s prompt.
       copy:
-        dest: /home/{{ user }}/.bashrc
+        dest: /home/{{ ansible_user_id }}/.bashrc
         src: "{{ user_bashrc }}"
         backup: true
 ...
